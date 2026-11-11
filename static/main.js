@@ -370,7 +370,7 @@ function renderStats(panelId, data, label) {
 /* -------------------------------- Render --------------------------------- */
 
 function currentOpts() {
-  return { showClusters: clusterToggle.checked, useXpts: xptsToggle.checked };
+  return { showClusters: clusterToggle.checked, useXpts: !!(xptsToggle && xptsToggle.checked) };
 }
 
 function renderSlot(slot, data, label) {
@@ -585,7 +585,7 @@ gameSelectB.addEventListener("change", updateButtonState);
 compareToggle.addEventListener("change", applyMode);
 
 clusterToggle.addEventListener("change", rerenderFromCache);
-xptsToggle.addEventListener("change", rerenderFromCache);
+if (xptsToggle) xptsToggle.addEventListener("change", rerenderFromCache);
 
 // Cluster count is computed server-side, so changing k needs a refetch.
 kSelect.addEventListener("change", () => {
@@ -602,9 +602,8 @@ function initModelStatus() {
     modelStatus.textContent = "xPTS model: loaded";
   } else {
     modelStatus.textContent = "";
-    xptsToggle.checked = false;
-    xptsToggle.disabled = true;
-    xptsLabel.classList.add("disabled");
+    if (xptsToggle) { xptsToggle.checked = false; xptsToggle.disabled = true; }
+    if (xptsLabel) xptsLabel.classList.add("disabled");
   }
 }
 
