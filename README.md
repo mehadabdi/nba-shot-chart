@@ -2,8 +2,13 @@
 
 A Flask web app for exploring NBA shot data. Pick a team, player, and game and
 it draws every field-goal attempt on a half-court plot — then layers on
-shooting stats, k-means "hot zones", a side-by-side game comparison, and an
-expected-points (xPTS) model.
+shooting stats, k-means "hot zones", and a side-by-side game comparison.
+
+Built as a team capstone project with Ochi and Theo. I worked mainly on the
+Flask backend (the routes that pull data from the NBA API and serve it to the
+front end).
+
+**Stack:** Python, Flask, nba_api, pandas, scikit-learn, JavaScript, Plotly
 
 ## Features
 
@@ -14,14 +19,15 @@ expected-points (xPTS) model.
   each with its own chart and stat panel.
 - **Hot zones** — k-means clusters the shot locations into zones, each shaded
   red → green by its FG% and outlined with a convex hull.
-- **xPTS (expected points)** — a logistic-regression model predicts every
-  shot's make probability from its court location, giving expected points per
-  shot and a "points vs expected" shot-quality number.
+- **xPTS (expected points), in progress** — the code for a logistic-regression
+  model that predicts each shot's make probability from its court location is
+  written (`model.py`, `train_model.py`), but the model hasn't been trained yet.
+  The app runs normally without it.
 
 ## Project structure
 
 ```
-Project/
+nba-shot-chart/
   app.py            Flask app + JSON API
   stats.py          shooting splits, eFG%, zone breakdown
   clustering.py     k-means hot zones + convex hulls
@@ -37,18 +43,19 @@ Project/
 
 ## Setup
 
+```bash
+git clone https://github.com/mehadabdi/nba-shot-chart.git
+cd nba-shot-chart
+```
+
+
 Requires **Python 3.11 or newer** (install from [python.org](https://www.python.org/downloads/)
 and tick "Add Python to PATH" — do not use the Microsoft Store stub).
-
-The `.venv/` folder shipped in the zip was built on another machine and will
-not run here. Delete it and create a fresh one.
 
 PowerShell (Windows):
 
 ```powershell
-# from the Project folder
-Remove-Item -Recurse -Force .venv
-
+# from the project folder
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
@@ -57,15 +64,14 @@ pip install -r requirements.txt
 macOS / Linux:
 
 ```bash
-rm -rf .venv
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Train the xPTS model
+## Train the xPTS model (optional)
 
-The expected-points feature needs a trained model. Run this once:
+The expected-points feature needs a trained model, which isn't included. To train it:
 
 ```bash
 python train_model.py        # default: top 40 scorers of 2023-24
