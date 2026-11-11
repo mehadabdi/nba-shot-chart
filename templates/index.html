@@ -1,0 +1,309 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <title>NBA Shot Chart</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Plotly for graph -->
+  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 24px;
+      color: #1a1a1a;
+    }
+
+    h1 {
+      margin-bottom: 2px;
+    }
+
+    .sub {
+      color: #666;
+      margin-top: 0;
+    }
+
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: end;
+    }
+
+    label {
+      display: block;
+      font-weight: 650;
+      margin-bottom: 6px;
+    }
+
+    select,
+    button {
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+    }
+
+    select {
+      min-width: 230px;
+    }
+
+    button {
+      cursor: pointer;
+      min-width: 200px;
+      background: #1a1a1a;
+      color: #fff;
+      border-color: #1a1a1a;
+      font-weight: 600;
+    }
+
+    button:disabled {
+      background: #ccc;
+      border-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    .opt-row {
+      margin-top: 14px;
+      display: flex;
+      gap: 22px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .opt-row label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500;
+      margin: 0;
+    }
+
+    .opt-row label.disabled {
+      color: #aaa;
+    }
+
+    .opt-row select {
+      min-width: 64px;
+    }
+
+    .error {
+      color: #b00020;
+      margin-top: 12px;
+      white-space: pre-wrap;
+    }
+
+    .chart {
+      width: 100%;
+      height: 560px;
+    }
+
+    .single-grid,
+    .compare-grid {
+      display: grid;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .single-grid {
+      grid-template-columns: 1.6fr 1fr;
+    }
+
+    .compare-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    @media (max-width: 950px) {
+
+      .single-grid,
+      .compare-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    table.stats {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    table.stats td,
+    table.stats th {
+      padding: 6px 10px;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+    }
+
+    table.stats th {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: #777;
+    }
+
+    table.stats td.num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-title {
+      margin: 0 0 8px;
+    }
+
+    .pos {
+      color: #0a7f2e;
+      font-weight: 700;
+    }
+
+    .neg {
+      color: #b00020;
+      font-weight: 700;
+    }
+
+    .muted {
+      color: #888;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>NBA Shot Chart</h1>
+  <p class="sub">Made vs missed shots, shooting stats, k-means hot zones, and an expected-points model.</p>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>Team</label>
+        <select id="teamSelect">
+          <option value="">Select a team</option>
+          {% for t in teams %}
+          <option value="{{ t['id'] }}">{{ t['full_name'] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label>Season</label>
+        <select id="seasonSelect">
+          <option value="{{ default_season }}">{{ default_season }}</option>
+          <option value="2024-25">2024-25</option>
+          <option value="2022-23">2022-23</option>
+          <option value="2021-22">2021-22</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Player</label>
+        <select id="playerSelect" disabled>
+          <option value="">Select a player</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="opt-row">
+      <label><input type="checkbox" id="compareToggle" /> Compare two games (same player)</label>
+    </div>
+
+    <!-- Single-game picker -->
+    <div class="row" id="singleGameRow" style="margin-top: 14px;">
+      <div>
+        <label>Game</label>
+        <select id="gameSelect" disabled>
+          <option value="">Select a game</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Compare-games picker -->
+    <div class="row hidden" id="compareGameRow" style="margin-top: 14px;">
+      <div>
+        <label>Game A</label>
+        <select id="gameSelectA" disabled>
+          <option value="">Select a game</option>
+        </select>
+      </div>
+      <div>
+        <label>Game B</label>
+        <select id="gameSelectB" disabled>
+          <option value="">Select a game</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="opt-row">
+      <label><input type="checkbox" id="clusterToggle" /> Show hot zones (k-means)</label>
+      <label id="kLabel">k =
+        <select id="kSelect">
+          <option>3</option>
+          <option>4</option>
+          <option selected>5</option>
+          <option>6</option>
+          <option>7</option>
+          <option>8</option>
+        </select>
+      </label>
+
+    </div>
+
+    <div class="opt-row">
+      <button id="loadShotsBtn" disabled>Make shot chart</button>
+      <span id="modelStatus" class="muted"></span>
+    </div>
+
+    <div id="errorBox" class="error"></div>
+  </div>
+
+  <!-- Single-game view -->
+  <div id="singleView" class="single-grid">
+    <div class="card">
+      <div id="chart" class="chart"></div>
+    </div>
+    <div class="card" id="statsPanel">
+      <p class="muted">Pick a team, player and game, then "Make shot chart".</p>
+    </div>
+  </div>
+
+  <!-- Compare view -->
+  <div id="compareView" class="compare-grid hidden">
+    <div class="panel-stack">
+      <div class="card">
+        <div id="chartA" class="chart"></div>
+      </div>
+      <div class="card" id="statsPanelA">
+        <p class="muted">Game A &mdash; pick two games and click "Make shot chart".</p>
+      </div>
+    </div>
+    <div class="panel-stack">
+      <div class="card">
+        <div id="chartB" class="chart"></div>
+      </div>
+      <div class="card" id="statsPanelB">
+        <p class="muted">Game B &mdash; pick two games and click "Make shot chart".</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.MODEL_LOADED = {{ 'true' if model_loaded else 'false' }};
+    window.MODEL_STATUS = {{ model_status | tojson }};
+  </script>
+  <script src="/static/main.js"></script>
+</body>
+
+</html>

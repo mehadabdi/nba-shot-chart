@@ -1,0 +1,6 @@
+Flask>=3.0
+nba_api>=1.11
+pandas>=2.0
+numpy>=1.26
+scikit-learn>=1.5
+requests>=2.31
